@@ -3,13 +3,6 @@
 
 std::unordered_map<TESBoundObject*, TESBoundObject*> map;
 
-bool bInAlchemyMenu;
-
-bool IsAlchemyMenu() {
-    const auto menu = UI::GetSingleton()->GetMenu<CraftingMenu>().get();
-    return skyrim_cast<CraftingSubMenus::CraftingSubMenus::AlchemyMenu*>(menu->GetCraftingSubMenu());
-}
-
 void ConvertFoodToIngredient() {
     Actor* player = PlayerCharacter::GetSingleton();
     const auto& inventory = player->GetInventory();
@@ -46,16 +39,29 @@ void ConvertIngredientsToFood() {
     }
 }
 
-struct EventSink : public BSTEventSink<MenuOpenCloseEvent> {
-    BSEventNotifyControl ProcessEvent(const MenuOpenCloseEvent* event, BSTEventSource<MenuOpenCloseEvent>*) {
-        if (event->menuName != CraftingMenu::MENU_NAME) return BSEventNotifyControl::kContinue;
-        if (event->opening && IsAlchemyMenu()) {
-            bInAlchemyMenu = true;
+bool IsAlchemyBench(TESObjectREFR* ref) {
+    if (!ref) return false;
+    if (auto* base = ref->GetBaseObject(); base) {
+        if (base->Is(FormType::Furniture)) {
+            TESFurniture* furniture = base->As<TESFurniture>();
+            if (furniture && furniture->workBenchData.benchType == TESFurniture::WorkBenchData::BenchType::kAlchemy) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+struct EventSink : public BSTEventSink<TESFurnitureEvent> {
+    BSEventNotifyControl ProcessEvent(const TESFurnitureEvent* event, BSTEventSource<TESFurnitureEvent>*) {
+        if (!event || event->actor.get() != PlayerCharacter::GetSingleton() || !IsAlchemyBench(event->targetFurniture.get())) return BSEventNotifyControl::kContinue;
+
+        if (event->type == TESFurnitureEvent::FurnitureEventType::kEnter) {
             ConvertFoodToIngredient();
-        } else if (bInAlchemyMenu) {
-            bInAlchemyMenu = false;
+        } else {
             ConvertIngredientsToFood();
         }
+
         return BSEventNotifyControl::kContinue;
     }
 };
@@ -92,7 +98,7 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
         CompileItemsList();
         if (!map.empty()) {
             static EventSink theSink;
-            UI::GetSingleton()->AddEventSink(&theSink);
+            ScriptEventSourceHolder().GetSingleton()->AddEventSink<TESFurnitureEvent>(&theSink);
         }
     }
 }
