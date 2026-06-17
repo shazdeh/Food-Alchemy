@@ -1,3 +1,11 @@
+# Each line should contain a FormID pair separated by " : "
+# where first is the item being replaced, second is the ingredient given to player in Alchemy menu.
+# FormIDs must be in one of the following format:
+#   - Editor ID (e.g., "BearPelt")
+#   - Plugin~FormID (e.g., "0x12345~Skyrim.esm")
+#   - Hex FormID (e.g., "0x00012345")
+# Lines starting with # or ; are comments
+
 0x00064B3F : 0x003~Food Alchemy.esp
 0x00064B40 : 0x004~Food Alchemy.esp
 0x000669A5 : 0x008~Food Alchemy.esp

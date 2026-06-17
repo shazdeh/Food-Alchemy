@@ -67,27 +67,32 @@ struct EventSink : public BSTEventSink<TESFurnitureEvent> {
 };
 
 void CompileItemsList() {
-    const std::filesystem::path filePath = "Data/SKSE/Plugins/FoodAlchemy.txt";
-    if (!std::filesystem::exists(filePath)) {
+    const std::filesystem::path dir = "Data/SKSE/Plugins/Food Alchemy";
+    if (!std::filesystem::exists(dir)) {
         return;
     }
-    std::ifstream file{filePath};
-    if (!file.is_open()) {
-        return;
-    }
-    std::string line;
-    int i = 0;
-    while (std::getline(file, line)) {
-        if (line.empty()) continue;
-        const auto data = FormReader::split(line, " : ");
-        if (data.size() != 2) continue;
-        auto foodID = FormReader::GetFormEditorIDFromString(data[0]);
-        auto ingredientID = FormReader::GetFormEditorIDFromString(data[1]);
-        if (foodID && ingredientID) {
-            auto food = TESForm::LookupByID<TESBoundObject>(foodID);
-            auto ingredient = TESForm::LookupByID<TESBoundObject>(ingredientID);
-            if (food && ingredient) {
-                map.insert({food, ingredient});
+    for (auto& filePath : std::filesystem::directory_iterator(dir)) {
+        auto ext = filePath.path().extension().string();
+        if (ext != ".txt") continue;
+        std::ifstream file{filePath.path()};
+        if (!file.is_open()) {
+            return;
+        }
+        std::string line;
+        int i = 0;
+        while (std::getline(file, line)) {
+            // following pattern from Quantum
+            if (line.empty() || line[0] == '#' || line[0] == ';') continue;
+            const auto data = FormReader::split(line, " : ");
+            if (data.size() != 2) continue;
+            auto foodID = FormReader::GetFormEditorIDFromString(data[0]);
+            auto ingredientID = FormReader::GetFormEditorIDFromString(data[1]);
+            if (foodID && ingredientID) {
+                auto food = TESForm::LookupByID<TESBoundObject>(foodID);
+                auto ingredient = TESForm::LookupByID<TESBoundObject>(ingredientID);
+                if (food && ingredient) {
+                    map.insert({food, ingredient});
+                }
             }
         }
     }
